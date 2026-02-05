@@ -13,8 +13,11 @@ import {
   
   
   export function StockCard({ output }: {output: any}) {
+    if(!output?.stock){
+        return <p>Loading...</p>
+      }
     return (
-      <Card className="w-full text-center max-w-sm">
+      <Card className="w-full text-center min-w-[200px] ">
         <CardHeader>
           <CardTitle>{output?.stock}</CardTitle>
           <CardDescription className="flex flex-col">

@@ -13,8 +13,11 @@ import {
   
   
   export function RaceCard({ output }: {output: any}) {
+    if(!output?.race){
+      return <p>Loading...</p>
+    }
     return (
-      <Card className="w-full text-center max-w-sm">
+      <Card className="w-full text-center min-w-[200px]">
         <CardHeader>
           <CardTitle>{output?.race.raceName}</CardTitle>
           <CardDescription className="flex flex-col">

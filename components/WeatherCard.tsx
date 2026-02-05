@@ -11,8 +11,11 @@ import {
 import Image from "next/image"
 
 export function WeatherCard({input, output}: {input: any, output: any}) {
+  if(!output?.weather){
+    return <p>Loading...</p>
+  }
   return (
-    <Card className="w-full text-center max-w-sm">
+    <Card className="w-full text-center min-w-[200px]">
       <CardHeader>
         <CardTitle>{output?.weather.main}</CardTitle>
         <CardDescription>
