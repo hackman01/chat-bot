@@ -20,23 +20,49 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
+import { signOut } from "next-auth/react"
+import axios from "axios"
+import { useState, useEffect } from "react"
+import { getConversations } from "@/actions/getConversation"
+import { createConversation } from "@/actions/createConversation"
 
-export function AppSidebar() {
-  const conversations = [
-    { id: 1, title: "Weather in New York", time: "2 min ago" },
-  ]
+export default function AppSidebar({selectedConversationId,setSelectedConversationId}: {selectedConversationId: string,setSelectedConversationId: (id: string) => void}) {
 
+  const [conversations, setConversations] = useState<any>([])
   const handleLogout = () => {
-    console.log("Logging out...")
- 
+    signOut()
   }
+  const handleNewConversation = async () => {
+    try {
+      const response = await createConversation()
+      if (typeof response === 'object' && 'id' in response) {
+        setSelectedConversationId(response.id)
+        setConversations((prevConversations: any) => [...prevConversations, response])
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error)
+    }
+  }
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const data: any = await getConversations();
+        console.log(data)
+        setConversations(data)
+      } catch (error) {
+        console.error('Error fetching conversations:', error)
+      }
+    }
+    fetchConversations()
+  }, [])
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold">ChatBot AI</h1>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleNewConversation}>
             <Plus className="h-4 w-4" />
             <span className="sr-only">New Chat</span>
           </Button>
@@ -48,7 +74,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversations.map((conversation) => (
+              {conversations.length>0 && conversations?.map((conversation: any) => (
                 <SidebarMenuItem key={conversation.id}>
                   <SidebarMenuButton className="h-10">
                     <MessageSquare className="h-4 w-4" />

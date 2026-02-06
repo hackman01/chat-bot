@@ -5,10 +5,15 @@ import { useState, useRef, useEffect } from 'react';
 import { WeatherCard } from '@/components/WeatherCard';
 import { RaceCard } from '@/components/RaceCard';
 import { StockCard } from '@/components/StockCard';
+import { SidebarProvider } from "@/components/ui/sidebar"
+import AppSidebar from "@/components/AppSidebar"
+import { SidebarInset } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage } = useChat();
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -20,7 +25,11 @@ export default function Chat() {
   }, [messages]);
   
   return (
-    <div className="flex flex-col h-full w-full bg-gray-300">
+    <SidebarProvider>
+        <AppSidebar selectedConversationId={selectedConversationId!} setSelectedConversationId={setSelectedConversationId}/>
+        <SidebarInset>
+            <SidebarTrigger className="fixed" />
+        <div className="flex flex-col h-full w-full bg-gray-300">
       <div className="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container">
           {messages.map((message) => (
           <div 
@@ -73,10 +82,10 @@ export default function Chat() {
 
       <div className="p-4 border-t border-gray-300">
         <form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             if (input.trim()) {
-              sendMessage({ text: input });
+              sendMessage({ text: input},{ body: { selectedConversationId } } );
               setInput('');
             }
           }}
@@ -97,5 +106,7 @@ export default function Chat() {
         </form>
       </div>
     </div>
+    </SidebarInset>
+    </SidebarProvider>
   );
 }

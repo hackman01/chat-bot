@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/db';
 import { messages, conversations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.id) {
       return NextResponse.json(

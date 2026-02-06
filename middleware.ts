@@ -13,7 +13,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/chat/:path*',
     '/api/conversations/:path*',
     '/api/messages/:path*',
   ],

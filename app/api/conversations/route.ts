@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/db';
 import { conversations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -48,7 +47,7 @@ export async function GET(request: NextRequest) {
       .select()
       .from(conversations)
       .where(eq(conversations.userId, session.user.id))
-      .orderBy(conversations.updatedAt);
+      .orderBy(conversations.createdAt);
 
     return NextResponse.json(userConversations);
   } catch (error) {
