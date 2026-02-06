@@ -7,19 +7,46 @@ import getStockPrice from '@/lib/getStockPrice';
 import db from '@/db';
 import { messages, conversations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user?.id) {
+    return new Response('User authentication required', { status: 401 });
+  }
+
   const { 
     messages: uiMessages, 
-    userId 
+    conversationId 
   }: { 
     messages: UIMessage[]; 
-    userId: string;
+    conversationId?: string;
   } = await req.json();
 
-  let currentConversationId = req.headers.get('X-Conversation-ID');
+  let currentConversationId = conversationId;
 
   try {
+    if (!currentConversationId) {
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
+
+      if (user.length === 0) {
+        return new Response('User not found', { status: 404 });
+      }
+
+      const firstMessageContent = (uiMessages[0] as any)?.parts?.find((part: any) => part.type === 'text')?.text || 'New Chat';
+      const newConversation = await db.insert(conversations).values({
+        userId: user[0].id,
+        title: firstMessageContent.slice(0, 50),
+      }).returning();
+
+      currentConversationId = newConversation[0].id;
+    }
 
     if (uiMessages.length > 0) {
       const lastMessage = uiMessages[uiMessages.length - 1];
@@ -29,7 +56,7 @@ export async function POST(req: Request) {
         conversationId: currentConversationId!,
         role: lastMessage.role as 'user' | 'assistant' | 'system',
         content: textContent,
-        toolInvocations: (lastMessage as any).parts?.filter((part: any) => part.type === 'tool-weather' || part.type === 'text' || part.type === 'tool-races' || part.type === 'tool-stock') || null,
+        toolInvocations: (lastMessage as any).parts?.filter((part: any) => part.type === 'tool-call' || part.type === 'tool-result') || null,
       });
     }
 

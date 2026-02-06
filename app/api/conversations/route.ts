@@ -2,33 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/db';
 import { conversations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, title } = await request.json();
-
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
+        { error: 'User authentication required' },
+        { status: 401 }
       );
     }
 
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (user.length === 0) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
+    const { title } = await request.json();
 
     const newConversation = await db.insert(conversations).values({
-      userId: user[0].id,
+      userId: session.user.id,
       title: title || 'New Chat',
     }).returning();
 
@@ -44,20 +35,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
+        { error: 'User authentication required' },
+        { status: 401 }
       );
     }
 
     const userConversations = await db
       .select()
       .from(conversations)
-      .where(eq(conversations.userId, userId))
+      .where(eq(conversations.userId, session.user.id))
       .orderBy(conversations.updatedAt);
 
     return NextResponse.json(userConversations);

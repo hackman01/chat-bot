@@ -1,27 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/db';
 import { messages, conversations } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const conversationId = params.id;
-
-    if (!conversationId) {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Conversation ID is required' },
-        { status: 400 }
+        { error: 'User authentication required' },
+        { status: 401 }
       );
     }
 
-    const conversationMessages = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.conversationId, conversationId))
-      .orderBy(messages.createdAt);
+    const conversationId = params.id;
 
     const conversation = await db
       .select()
@@ -35,6 +33,19 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    if (conversation[0].userId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    const conversationMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
 
     return NextResponse.json({
       conversation: conversation[0],
