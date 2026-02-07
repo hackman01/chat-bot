@@ -27,6 +27,7 @@ import { useState, useEffect } from "react"
 import { getConversations } from "@/actions/getConversations"
 import { createConversation } from "@/actions/createConversation"
 import { useSession } from "next-auth/react"
+import { showToast } from "@/lib/toast"
 
 export default function AppSidebar({selectedConversationId,setSelectedConversationId}: {selectedConversationId: string,setSelectedConversationId: (id: string) => void}) {
 
@@ -34,6 +35,7 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
   const [loading, setLoading] = useState(false);
   const {data: session} = useSession()
   const handleLogout = () => {
+    showToast.success('Logged out successfully')
     signOut()
   }
   const handleNewConversation = async () => {
@@ -42,9 +44,11 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
       if (typeof response === 'object' && 'id' in response) {
         setSelectedConversationId(response.id)
         setConversations((prevConversations: any) => [...prevConversations, response])
+        showToast.success('New conversation created successfully')
       }
     } catch (error) {
       console.error('Error creating conversation:', error)
+      showToast.error('Failed to create conversation')
     } 
   }
 
@@ -57,6 +61,7 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
         setConversations(data)
       } catch (error) {
         console.error('Error fetching conversations:', error)
+        showToast.error('Failed to load conversations')
       } finally {
         setLoading(false);
       }

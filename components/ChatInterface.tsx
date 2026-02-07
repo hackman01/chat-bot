@@ -9,6 +9,7 @@ import { getMessages } from "@/actions/getMessages"
 import { Button } from './ui/button';
 import Loader from "@/components/Loader"
 import Chat from "./Chat"
+import { showToast } from "@/lib/toast"
 
 type ToolInvocations = {
     type: string;
@@ -38,6 +39,7 @@ export default function ChatInterface() {
    
     if (typeof res === 'object' && 'error' in res) {
       console.error(res.error);
+      showToast.error(res.error);
       setLoading(false);
       return;
     }
