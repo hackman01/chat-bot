@@ -3,8 +3,15 @@
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Chrome, Github } from "lucide-react";
+import { useSearchParams } from 'next/navigation';
+import { showToast } from "@/lib/toast";
 
 export default function SignIn() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+  if(error){
+    showToast.error(error);
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8">
