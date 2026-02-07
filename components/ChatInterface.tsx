@@ -9,20 +9,57 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import AppSidebar from "@/components/AppSidebar"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { getMessages } from "@/actions/getMessages"
+import { UIMessage } from "@ai-sdk/react"
+
+type ToolInvocations = {
+    type: string;
+    input: unknown;
+    output: unknown;
+}
+
+type Message = {
+    id: string;
+    conversationId: string;
+    role: "user" | "data" | "assistant" | "system" | "tool";
+    content: string | null;
+    toolInvocations: ToolInvocations | null;
+    createdAt: Date;
+}
 
 export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage } = useChat();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [initMessages, setInitMessages] = useState<Message[]>([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const initialMessages = async () => {
+    if (!selectedConversationId) return;
+    //@ts-ignore
+    const res : Message[] | { error: string } = await getMessages(selectedConversationId);
+   
+    if (typeof res === 'object' && 'error' in res) {
+      console.error(res.error);
+      return;
+    }
+    
+    if (res) {
+      setInitMessages(res);
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    initialMessages();
+  }, [selectedConversationId]);
   
   return (
     <SidebarProvider>
@@ -31,6 +68,74 @@ export default function Chat() {
             <SidebarTrigger className="fixed" />
         <div className="flex flex-col h-full w-full bg-gray-300">
       <div className="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container">
+          {initMessages.map((message: Message) => {
+            if(!message.content){
+              switch(message.toolInvocations?.type){
+                case 'tool-weather':
+                  return  <div 
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      message.role === 'user' 
+                        ? 'bg-gray-100 rounded-tr-none' 
+                        : 'bg-gray-100 rounded-tl-none'
+                    }`}
+                  > 
+                  <WeatherCard input={message.toolInvocations.input} output={message.toolInvocations.output} />
+                  </div>
+                </div>
+                case 'tool-races':
+                  return  <div 
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      message.role === 'user' 
+                        ? 'bg-gray-100 rounded-tr-none' 
+                        : 'bg-gray-100 rounded-tl-none'
+                    }`}
+                  >  
+                  <RaceCard output={message.toolInvocations.output} />
+                  </div>
+                </div>
+                case 'tool-stock':
+                  return  <div 
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      message.role === 'user' 
+                        ? 'bg-gray-100 rounded-tr-none' 
+                        : 'bg-gray-100 rounded-tl-none'
+                    }`}
+                  >  
+                  <StockCard output={message.toolInvocations.output} />
+                  </div>
+                </div>
+                default:
+                  return null
+              }
+            }
+          return (
+          <div 
+            key={message.id}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div 
+              className={`max-w-[80%] rounded-lg p-4 ${
+                message.role === 'user' 
+                  ? 'bg-gray-100 rounded-tr-none' 
+                  : 'bg-gray-100 rounded-tl-none'
+              }`}
+            > 
+           {message.content}
+            </div>
+          </div>
+        )})}
           {messages.map((message) => (
           <div 
             key={message.id} 
@@ -85,7 +190,7 @@ export default function Chat() {
           onSubmit={async (e) => {
             e.preventDefault();
             if (input.trim()) {
-              sendMessage({ text: input},{ body: { selectedConversationId } } );
+              sendMessage({ text: input},{ body: { conversationId:selectedConversationId } } );
               setInput('');
             }
           }}

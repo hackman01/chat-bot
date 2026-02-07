@@ -23,7 +23,7 @@ import {
 import { signOut } from "next-auth/react"
 import axios from "axios"
 import { useState, useEffect } from "react"
-import { getConversations } from "@/actions/getConversation"
+import { getConversations } from "@/actions/getConversations"
 import { createConversation } from "@/actions/createConversation"
 
 export default function AppSidebar({selectedConversationId,setSelectedConversationId}: {selectedConversationId: string,setSelectedConversationId: (id: string) => void}) {
@@ -75,8 +75,8 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
           <SidebarGroupContent>
             <SidebarMenu>
               {conversations.length>0 && conversations?.map((conversation: any) => (
-                <SidebarMenuItem key={conversation.id}>
-                  <SidebarMenuButton className="h-10">
+                <SidebarMenuItem className={selectedConversationId === conversation.id ? 'bg-gray-100' : ''} key={conversation.id}>
+                  <SidebarMenuButton className="h-10" onClick={() => setSelectedConversationId(conversation.id)}>
                     <MessageSquare className="h-4 w-4" />
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{conversation.title}</span>

@@ -47,17 +47,24 @@ export async function POST(req: Request) {
     //   currentConversationId = newConversation[0].id;
     // }
 
-    // if (uiMessages.length > 0) {
-    //   const lastMessage = uiMessages[uiMessages.length - 1];
-    //   const textContent = (lastMessage as any)?.parts?.find((part: any) => part.type === 'text')?.text || '';
+    if (uiMessages.length > 0) {
+      const lastMessage = uiMessages[uiMessages.length - 1];
+      const textContent = (lastMessage as any)?.parts?.find((part: any) => part.type === 'text')?.text || '';
       
-    //   await db.insert(messages).values({
-    //     conversationId: currentConversationId!,
-    //     role: lastMessage.role as 'user' | 'assistant' | 'system',
-    //     content: textContent,
-    //     toolInvocations: (lastMessage as any).parts?.filter((part: any) => part.type === 'tool-call' || part.type === 'tool-result') || null,
-    //   });
-    // }
+      await db.insert(messages).values({
+        conversationId: currentConversationId!,
+        role: lastMessage.role as 'user' | 'assistant' | 'system',
+        content: textContent,
+        toolInvocations: (lastMessage as any).parts?.filter((part: any) => part.type === 'tool-call' || part.type === 'tool-result' || part.type==='tool-weather' || part.type==='tool-races' || part.type==='tool-stock') || null,
+      });
+    }
+
+    let toolResult: {
+      type: string;
+      input: unknown;
+      output: unknown;
+    };
+    
 
     const result = streamText({
       model: "mistral/devstral-2",
@@ -70,6 +77,11 @@ export async function POST(req: Request) {
             }),
             execute: async ({ location }) => {
               const weather = await getWeather({ location });
+              toolResult = {
+                type: 'tool-weather',
+                input: { location },
+                output: weather,
+              };
               return weather;
             },
           }),
@@ -78,6 +90,11 @@ export async function POST(req: Request) {
             inputSchema: z.object(),
             execute: async () => {
               const race = await getF1Matches();
+              toolResult = {
+                type: 'tool-races',
+                input: {},
+                output: race,
+              };
               return race;
             },
           }),
@@ -88,20 +105,26 @@ export async function POST(req: Request) {
             }),
             execute: async ({ company }) => {
               const stock = await getStockPrice({ company });
+              toolResult = {
+                type: 'tool-stock',
+                input: { company },
+                output: stock,
+              };
               return stock;
             },
           })
         },
-        // onFinish: async ({ text, toolCalls }) => {
-        //   if (currentConversationId) {
-        //     await db.insert(messages).values({
-        //       conversationId: currentConversationId,
-        //       role: 'assistant',
-        //       content: text || '',
-        //       toolInvocations: toolCalls || null,
-        //     });
-        //   }
-        // },
+        onFinish: async ({ text, steps  }) => {
+          if (currentConversationId) {
+            await db.insert(messages).values({
+              conversationId: currentConversationId,
+              role: 'assistant',
+              content: text || '',
+              toolInvocations: toolResult || null,
+              
+            });
+          }
+        },
     });
 
     const response = result.toUIMessageStreamResponse();
