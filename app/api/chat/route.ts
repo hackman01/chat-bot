@@ -8,6 +8,7 @@ import db from '@/db';
 import { messages, conversations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth'
+import { updateTitle } from '@/actions/updateTitle';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -27,25 +28,14 @@ export async function POST(req: Request) {
   let currentConversationId = conversationId;
 
   try {
-    // if (!currentConversationId) {
-    //   const user = await db
-    //     .select()
-    //     .from(users)
-    //     .where(eq(users.id, session.user.id))
-    //     .limit(1);
-
-    //   if (user.length === 0) {
-    //     return new Response('User not found', { status: 404 });
-    //   }
-
-    //   const firstMessageContent = (uiMessages[0] as any)?.parts?.find((part: any) => part.type === 'text')?.text || 'New Chat';
-    //   const newConversation = await db.insert(conversations).values({
-    //     userId: user[0].id,
-    //     title: firstMessageContent.slice(0, 50),
-    //   }).returning();
-
-    //   currentConversationId = newConversation[0].id;
-    // }
+    if (currentConversationId) {
+      try{
+        await updateTitle(conversationId!);
+      }catch(error){
+        console.error('Error updating conversation title:', error);
+        return new Response('Failed to update conversation title', { status: 500 });
+      }
+    }
 
     if (uiMessages.length > 0) {
       const lastMessage = uiMessages[uiMessages.length - 1];

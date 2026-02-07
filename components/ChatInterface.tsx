@@ -11,6 +11,8 @@ import { SidebarInset } from "@/components/ui/sidebar"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { getMessages } from "@/actions/getMessages"
 import { UIMessage } from "@ai-sdk/react"
+import { Button } from './ui/button';
+import Loader from "@/components/Loader"
 
 type ToolInvocations = {
     type: string;
@@ -30,6 +32,7 @@ type Message = {
 export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage } = useChat();
+  const [loading, setLoading] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [initMessages, setInitMessages] = useState<Message[]>([]);
@@ -40,17 +43,20 @@ export default function Chat() {
 
   const initialMessages = async () => {
     if (!selectedConversationId) return;
+    setLoading(true);
     //@ts-ignore
     const res : Message[] | { error: string } = await getMessages(selectedConversationId);
    
     if (typeof res === 'object' && 'error' in res) {
       console.error(res.error);
+      setLoading(false);
       return;
     }
     
     if (res) {
       setInitMessages(res);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -60,13 +66,28 @@ export default function Chat() {
   useEffect(() => {
     initialMessages();
   }, [selectedConversationId]);
+  if(!selectedConversationId){
+    return (
+      <SidebarProvider>
+        <AppSidebar selectedConversationId={selectedConversationId!} setSelectedConversationId={setSelectedConversationId}/>
+        <SidebarInset>
+            <SidebarTrigger className="fixed" />
+            <div className="flex flex-col justify-center items-center h-full w-full bg-gray-300"> 
+              <div className="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container">
+                <h1>Please select a conversation or create a new one to begin.</h1>
+              </div>
+            </div>
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
   
   return (
     <SidebarProvider>
         <AppSidebar selectedConversationId={selectedConversationId!} setSelectedConversationId={setSelectedConversationId}/>
         <SidebarInset>
             <SidebarTrigger className="fixed" />
-        <div className="flex flex-col h-full w-full bg-gray-300">
+        {loading ? <Loader /> : <div className="flex flex-col h-full w-full bg-gray-300">
       <div className="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container">
           {initMessages.map((message: Message) => {
             if(!message.content){
@@ -210,7 +231,7 @@ export default function Chat() {
           </button>
         </form>
       </div>
-    </div>
+    </div>}
     </SidebarInset>
     </SidebarProvider>
   );

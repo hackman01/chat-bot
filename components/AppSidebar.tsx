@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
 } from "./ui/sidebar"
 import { Plus, MessageSquare, User, LogOut, ChevronDown } from "lucide-react"
+import Loader from "@/components/Loader"
 import { Button } from "./ui/button"
 import {
   DropdownMenu,
@@ -25,10 +26,13 @@ import axios from "axios"
 import { useState, useEffect } from "react"
 import { getConversations } from "@/actions/getConversations"
 import { createConversation } from "@/actions/createConversation"
+import { useSession } from "next-auth/react"
 
 export default function AppSidebar({selectedConversationId,setSelectedConversationId}: {selectedConversationId: string,setSelectedConversationId: (id: string) => void}) {
 
   const [conversations, setConversations] = useState<any>([])
+  const [loading, setLoading] = useState(false);
+  const {data: session} = useSession()
   const handleLogout = () => {
     signOut()
   }
@@ -41,21 +45,25 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
       }
     } catch (error) {
       console.error('Error creating conversation:', error)
-    }
+    } 
   }
 
   useEffect(() => {
     const fetchConversations = async () => {
       try {
+        setLoading(true);
         const data: any = await getConversations();
         console.log(data)
         setConversations(data)
       } catch (error) {
         console.error('Error fetching conversations:', error)
+      } finally {
+        setLoading(false);
       }
     }
     fetchConversations()
   }, [])
+
 
   return (
     <Sidebar>
@@ -74,7 +82,7 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversations.length>0 && conversations?.map((conversation: any) => (
+              {loading ? <Loader /> : conversations.length>0 && conversations?.map((conversation: any) => (
                 <SidebarMenuItem className={selectedConversationId === conversation.id ? 'bg-gray-100' : ''} key={conversation.id}>
                   <SidebarMenuButton className="h-10" onClick={() => setSelectedConversationId(conversation.id)}>
                     <MessageSquare className="h-4 w-4" />
@@ -97,7 +105,7 @@ export default function AppSidebar({selectedConversationId,setSelectedConversati
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
                   <User className="h-4 w-4" />
-                  <span>Aman</span>
+                  <span>{session?.user?.name}</span>
                   <ChevronDown className="ml-auto h-4 w-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
